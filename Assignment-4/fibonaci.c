@@ -1,57 +1,77 @@
-/*
 #include <omp.h>
 #include <stdio.h>
+#include <stdint.h>
 
+long long int parallel_fib(int n) {
+    if (n < 2) return n;
 
-//Parallel Iterative Fibonacci (Using parallel for)
-int main() {
-    int n = 20;  // Change n to compute up to nth Fibonacci number
-    int fib[n + 1];
+    long long int a = 0, b = 1, c;
 
-    // Base cases
-    fib[0] = 0;
-    fib[1] = 1;
-
-    #pragma omp parallel for
-    for (int i = 2; i <= n; i++) {
-        fib[i] = fib[i-1] + fib[i-2];
-    }
-
-    printf("Fibonacci number F(%d) = %d\n", n, fib[n]);
-    return 0;
-}
-*/
-
-#include <omp.h>
-#include <stdio.h>
-
-int fib(int n) {
-    int x, y;
-    if (n < 2) {
-        return n;
-    } else {
-        #pragma omp task shared(x)
-        x = fib(n-1);
-        #pragma omp task shared(y)
-        y = fib(n-2);
-        #pragma omp taskwait
-        return x + y;
-    }
-}
-
-int main() {
-    int n;  // Change n to compute up to nth Fibonacci number
-    int result;
-
-    printf("Enter a number: ");
-    scanf("%d",&n);
-
+    // Create a parallel region
     #pragma omp parallel
     {
+        // Use a single section for the loop to avoid redundant threads
         #pragma omp single
-        result = fib(n);
+        {
+            #pragma omp for
+            for (int i = 2; i <= n; i++) {
+                c = a + b;
+                a = b;
+                b = c;
+            }
+        }
     }
+    return b;
+}
 
-    printf("Fibonacci number F(%d) = %d\n", n, result);
+long long int sequential_fib(int n) {
+    if (n < 2) return n;
+
+    long long int a = 0, b = 1, c;
+    for (int i = 2; i <= n; i++) {
+        c = a + b;
+        a = b;
+        b = c;
+    }
+    return b;
+}
+
+
+int main() {
+    int n;  // Number to compute Fibonacci number up to
+    long long int result;  // Changed to long long int to handle larger values
+
+    printf("Enter a number: ");
+    scanf("%d", &n);
+
+    /********************************************************/
+    printf("Sequential Execution\n");
+
+    double sequential_start_time = omp_get_wtime();  // Using omp_get_wtime() for high-precision timing
+
+    result = sequential_fib(n);  // Call sequential version
+
+    double sequential_end_time = omp_get_wtime(); 
+    double sequential_time = sequential_end_time - sequential_start_time;  // double for precise time calculation
+    printf("Fibonacci number F(%d) = %lld\n", n, result);
+    printf("Time taken (sequential): %f seconds\n", sequential_time);
+
+    /********************************************************/
+    
+    /********************************************************/
+
+    printf("Parallel Execution\n");
+    double parallel_start_time = omp_get_wtime();
+    result = parallel_fib(n);
+    double parallel_end_time = omp_get_wtime();
+    double parallel_time = parallel_end_time - parallel_start_time;
+    printf("Fibonacci number F(%d) = %lld\n", n, result);
+    printf("Time taken (parallel): %f seconds\n", parallel_time);
+    
+    /********************************************************/
+
+    double speedup = sequential_time / parallel_time;
+    printf("Speed Up: %f\n", speedup);
+
     return 0;
 }
