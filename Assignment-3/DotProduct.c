@@ -1,9 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <limits.h>
 #include <omp.h>
 
-#define N 100000  // Size of vectors
+#define N 10  // Size of vectors for simplicity
 
 void sort_ascending(int arr[], int n) {
     #pragma omp parallel for schedule(dynamic, 1000)
@@ -25,23 +24,33 @@ void sort_descending(int arr[], int n) {
             if (arr[j] < arr[j + 1]) {
                 int temp = arr[j];
                 arr[j] = arr[j + 1];
-                arr[j] = temp;
+                arr[j + 1] = temp;
             }
         }
     }
 }
 
+void print_array(int arr[], int n, const char* name) {
+    printf("%s: ", name);
+    for (int i = 0; i < n; i++) {
+        printf("%d ", arr[i]);
+    }
+    printf("\n");
+}
+
 int main() {
-    int *a = (int*)malloc(N * sizeof(int));
-    int *b = (int*)malloc(N * sizeof(int));
+    int a[N], b[N];
     long long min_product = 0;
 
-    // Initialize arrays with random values
-    #pragma omp parallel for
+    // Initialize arrays with simple values for easy calculation
     for (int i = 0; i < N; i++) {
-        a[i] = rand() % 100;
-        b[i] = rand() % 100;
+        a[i] = i + 1;  // Simple values from 1 to N
+        b[i] = N - i;  // Simple values from N to 1
     }
+
+    // Print the initial arrays
+    print_array(a, N, "Array a");
+    print_array(b, N, "Array b");
 
     double start_time = omp_get_wtime();
 
@@ -55,10 +64,13 @@ int main() {
         sort_descending(b, N);
     }
 
+    // Print the sorted arrays
+    print_array(a, N, "Sorted array a");
+    print_array(b, N, "Sorted array b");
+
     // Calculate the minimum scalar product
-    #pragma omp parallel for reduction(+:min_product) schedule(guided) ordered
+    #pragma omp parallel for reduction(+:min_product) schedule(guided)
     for (int i = 0; i < N; i++) {
-        #pragma omp ordered
         min_product += (long long)a[i] * b[i];
     }
 
@@ -67,7 +79,5 @@ int main() {
     printf("Minimum scalar product: %lld\n", min_product);
     printf("Time taken: %f seconds\n", end_time - start_time);
 
-    free(a);
-    free(b);
     return 0;
 }
