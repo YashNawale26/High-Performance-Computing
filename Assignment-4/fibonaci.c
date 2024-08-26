@@ -6,21 +6,25 @@ long long int parallel_fib(int n) {
     if (n < 2) return n;
 
     long long int a = 0, b = 1, c;
-
-    // Create a parallel region
+    
     #pragma omp parallel
     {
-        // Use a single section for the loop to avoid redundant threads
+        long long int local_a = a, local_b = b, local_c;
+        
+        #pragma omp for
+        for (int i = 2; i <= n; i++) {
+            local_c = local_a + local_b;
+            local_a = local_b;
+            local_b = local_c;
+        }
+        
         #pragma omp single
         {
-            #pragma omp for
-            for (int i = 2; i <= n; i++) {
-                c = a + b;
-                a = b;
-                b = c;
-            }
+            a = local_a;
+            b = local_b;
         }
     }
+    
     return b;
 }
 
@@ -35,7 +39,6 @@ long long int sequential_fib(int n) {
     }
     return b;
 }
-
 
 int main() {
     int n;  // Number to compute Fibonacci number up to
